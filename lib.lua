@@ -1,4 +1,4 @@
--- Cmd Library v1.1 — compact
+-- Cmd Library v1.2 — compact, fixed window controls
 local T={} T.__index=T T.Colors={bg=Color3.fromRGB(12,12,12),chrome=Color3.fromRGB(243,243,243),chromeHover=Color3.fromRGB(228,228,228),fg=Color3.fromRGB(204,204,204),dim=Color3.fromRGB(140,140,140),green=Color3.fromRGB(80,220,120),red=Color3.fromRGB(240,110,110),yellow=Color3.fromRGB(230,220,120),cyan=Color3.fromRGB(110,210,230),magenta=Color3.fromRGB(200,130,240),blue=Color3.fromRGB(100,170,255),close=Color3.fromRGB(200,50,50)}
 local C=T.Colors; local F=Enum.Font.Code; local Z=-9999
 local S=game:GetService("Players") local TW=game:GetService("TweenService") local UIS=game:GetService("UserInputService") local H=game:GetService("HttpService") local LP=S.LocalPlayer
@@ -19,11 +19,20 @@ function T.new(c)
   local tb=Instance.new("Frame") tb.Size=UDim2.new(1,0,0,32) tb.BackgroundColor3=C.chrome tb.BorderSizePixel=0 tb.Parent=w Instance.new("UICorner",tb).CornerRadius=UDim.new(0,8)
   local m=Instance.new("Frame") m.Size=UDim2.new(1,0,.5,0) m.Position=UDim2.new(0,0,.5,0) m.BackgroundColor3=C.chrome m.BorderSizePixel=0 m.ZIndex=tb.ZIndex m.Parent=tb
   local ic=Instance.new("TextLabel") ic.Size=UDim2.new(0,16,0,16) ic.Position=UDim2.new(0,12,.5,-8) ic.BackgroundTransparency=1 ic.Text=">_" ic.TextColor3=Color3.fromRGB(40,40,40) ic.Font=F ic.TextSize=10 ic.Parent=tb
-  local ti=Instance.new("TextLabel") ti.Size=UDim2.new(1,-240,1,0) ti.Position=UDim2.new(0,36,0,0) ti.BackgroundTransparency=1 ti.Text=s.Title ti.TextColor3=Color3.fromRGB(30,30,30) ti.Font=Enum.Font.Gotham ti.TextSize=12 ti.TextXAlignment=Enum.TextXAlignment.Left ti.Parent=tb
-  local function btn(x,hy,cb,ht) local b=Instance.new("TextButton") b.Size=UDim2.new(0,46,1,0) b.Position=UDim2.new(1,x,0,0) b.BackgroundColor3=C.chrome b.BackgroundTransparency=1 b.Text=ht or "—" b.TextColor3=Color3.fromRGB(30,30,30) b.Font=Enum.Font.Gotham b.TextSize=11 b.AutoButtonColor=false b.Parent=tb b.MouseEnter:Connect(function() b.BackgroundTransparency=0 b.BackgroundColor3=hy end) b.MouseLeave:Connect(function() b.BackgroundTransparency=1 end) b.MouseButton1Click:Connect(cb) return b end
-  btn(-92,C.chromeHover,function() TW:Create(w,TweenInfo.new(.2),{Size=UDim2.new(0,s.W+140,0,s.H+100)}):Play() end,"□")
-  local cb=btn(-46,C.close,function() TW:Create(w,TweenInfo.new(.2),{Size=UDim2.new(0,s.W,0,0)}):Play() task.wait(.25) s:Destroy() end,"✕") Instance.new("UICorner",cb).CornerRadius=UDim.new(0,8)
-  local dg,ds,dp=false,nil,nil tb.InputBegan:Connect(function(i) if i.UserInputType==Enum.UserInputType.MouseButton1 then dg=true ds=i.Position dp=w.Position i.Changed:Connect(function() if i.UserInputState==Enum.UserInputState.End then dg=false end end) end end)
+  local ti=Instance.new("TextLabel") ti.Size=UDim2.new(1,-180,1,0) ti.Position=UDim2.new(0,36,0,0) ti.BackgroundTransparency=1 ti.Text=s.Title ti.TextColor3=Color3.fromRGB(30,30,30) ti.Font=Enum.Font.Gotham ti.TextSize=12 ti.TextXAlignment=Enum.TextXAlignment.Left ti.Parent=tb
+  -- drag region: titlebar minus the 138px button area
+  local dr=Instance.new("Frame") dr.Size=UDim2.new(1,-138,1,0) dr.BackgroundTransparency=1 dr.BorderSizePixel=0 dr.Parent=tb
+  -- three window controls (min / max / close)
+  local function wbtn(xOff,label,hoverBg,hoverFg,cb)
+    local b=Instance.new("TextButton") b.Size=UDim2.new(0,46,1,0) b.Position=UDim2.new(1,xOff,0,0) b.BackgroundColor3=C.chrome b.BackgroundTransparency=1 b.BorderSizePixel=0 b.Text=label b.TextColor3=Color3.fromRGB(40,40,40) b.Font=Enum.Font.Gotham b.TextSize=12 b.AutoButtonColor=false b.Parent=tb
+    b.MouseEnter:Connect(function() b.BackgroundTransparency=0 Tween:Create(b,TweenInfo.new(.1),{BackgroundColor3=hoverBg}):Play() b.TextColor3=hoverFg end)
+    b.MouseLeave:Connect(function() Tween:Create(b,TweenInfo.new(.1),{BackgroundColor3=C.chrome}):Play() b.BackgroundTransparency=1 b.TextColor3=Color3.fromRGB(40,40,40) end)
+    b.MouseButton1Click:Connect(cb) return b
+  end
+  wbtn(-138,"—",C.chromeHover,Color3.fromRGB(40,40,40),function() Tween:Create(w,TweenInfo.new(.2),{Size=UDim2.new(0,s.W,0,0)}):Play() end)
+  wbtn(-92,"□",C.chromeHover,Color3.fromRGB(40,40,40),function() if w.Size.Y.Offset<100 then Tween:Create(w,TweenInfo.new(.2),{Size=UDim2.new(0,s.W,0,s.H)}):Play() else Tween:Create(w,TweenInfo.new(.2),{Size=UDim2.new(0,s.W+120,0,s.H+80)}):Play() end end)
+  wbtn(-46,"✕",C.close,Color3.fromRGB(255,255,255),function() Tween:Create(w,TweenInfo.new(.2),{Size=UDim2.new(0,s.W,0,0)}):Play() task.wait(.25) s:Destroy() end)
+  local dg,ds,dp=false,nil,nil dr.InputBegan:Connect(function(i) if i.UserInputType==Enum.UserInputType.MouseButton1 then dg=true ds=i.Position dp=w.Position i.Changed:Connect(function() if i.UserInputState==Enum.UserInputState.End then dg=false end end) end end)
   UIS.InputChanged:Connect(function(i) if dg and i.UserInputType==Enum.UserInputType.MouseMovement then local d=i.Position-ds w.Position=UDim2.new(dp.X.Scale,dp.X.Offset+d.X,dp.Y.Scale,dp.Y.Offset+d.Y) end end)
   local tbb=Instance.new("Frame") tbb.Position=UDim2.new(0,0,0,32) tbb.Size=UDim2.new(1,0,0,32) tbb.BackgroundColor3=C.chrome tbb.BorderSizePixel=0 tbb.Parent=w
   local t=Instance.new("Frame") t.Position=UDim2.new(0,8,0,0) t.Size=UDim2.new(0,200,1,0) t.BackgroundColor3=Color3.fromRGB(252,252,252) t.BorderSizePixel=0 t.Parent=tbb Instance.new("UICorner",t).CornerRadius=UDim.new(0,6)
@@ -77,7 +86,7 @@ function T.new(c)
   pb.FocusLost:Connect(function(e) if e then local c=pb.Text pb.Text="" s:_exec(c) end end)
   UIS.InputBegan:Connect(function(i,gp) if gp then return end if not pb:IsFocused() then return end if i.KeyCode==Enum.KeyCode.Up then s.Hi=math.min(s.Hi+1,#s.Hist) if s.Hist[s.Hi] then pb.Text=s.Hist[s.Hi] end elseif i.KeyCode==Enum.KeyCode.Down then s.Hi=math.max(s.Hi-1,0) pb.Text=s.Hi==0 and "" or (s.Hist[s.Hi] or "") end end)
   w.Size=UDim2.new(0,s.W,0,0) TW:Create(w,TweenInfo.new(.35,Enum.EasingStyle.Quad,Enum.EasingDirection.Out),{Size=UDim2.new(0,s.W,0,s.H)}):Play()
-  task.spawn(function() task.wait(.4) s:Write("Microsoft Windows [Version 10.0.26200.9457]",C.fg) s:Write("(c) Microsoft Corporation. All rights reserved.",C.fg) s:Write("",C.fg) task.wait(.1) s:Write("Cmd v1.1 — type 'help'.",C.blue) end)
+  task.spawn(function() task.wait(.4) s:Write("Microsoft Windows [Version 10.0.26200.9457]",C.fg) s:Write("(c) Microsoft Corporation. All rights reserved.",C.fg) s:Write("",C.fg) task.wait(.1) s:Write("Cmd v1.2 — type 'help'.",C.blue) end)
   return s
 end
 function T:Destroy() if self.Gui then self.Gui:Destroy() end end
