@@ -1,5 +1,5 @@
--- Cmd Library v1.9
-local T={} T.__index=T T.VERSION="1.9" T.BUILD="2026-09-21"
+-- Cmd Library v2.0
+local T={} T.__index=T T.VERSION="2.0" T.BUILD="2026-09-21"
 
 local function th(bg,ch,hov,ln,tab,fg,dm,gn,rd,yl,cy,mg,bl,cl)
   return {bg=bg,chrome=ch,chromeHover=hov,chromeLine=ln,tabActive=tab,fg=fg,dim=dm,green=gn,red=rd,yellow=yl,cyan=cy,magenta=mg,blue=bl,close=cl}
@@ -180,17 +180,16 @@ function T.new(c)
     return true
   end
 
-  -- CLEAR COMMANDS
-  -- default ("custom"): only removes user-registered commands, keeps builtins
-  -- "all": nukes everything
-  function s:ClearCommands(mode)
-    mode=mode or "custom"
-    if mode=="all" then s.Cmds={} return end
-    for name in pairs(s.Cmds) do
-      if not s.Builtins[name] then s.Cmds[name]=nil end
-    end
+  -- CLEAR: nukes EVERY command except `help` and `version`
+  -- AddBuiltins() restores the full default set if needed
+  function s:ClearCommands()
+    local keep={}
+    if s.Cmds["help"]    then keep["help"]    = s.Cmds["help"] end
+    if s.Cmds["version"] then keep["version"] = s.Cmds["version"] end
+    s.Cmds = keep
   end
   function s:WipeCommands() s.Cmds={} end
+
   function s:AddBuiltins()
     local function reg(spec) s.Cmds[spec.Name:lower()]=spec s.Builtins[spec.Name:lower()]=true end
     reg({Name="version",Description="show version",Callback=function(x) x:Write("Cmd v"..T.VERSION.." build "..T.BUILD,C.cyan) end})
@@ -208,13 +207,13 @@ function T.new(c)
       if not a[1] then x:Write("usage: color <name>",C.yellow) return end
       if x:SetTheme(a[1]) then x:Write("theme -> "..a[1],C.green) end
     end})
-    reg({Name="clearcommands",Description="remove YOUR commands (keeps builtins)",Callback=function(x)
-      local n=0
-      for name in pairs(x.Cmds) do if not x.Builtins[name] then n=n+1 end end
-      x:ClearCommands("custom") x:Write("cleared "..n.." custom commands",C.yellow)
+    reg({Name="clearcommands",Description="remove all commands except help/version",Callback=function(x)
+      local before=0 for _ in pairs(x.Cmds) do before=before+1 end
+      x:ClearCommands()
+      x:Write("cleared "..before.." commands (kept: help, version)",C.yellow)
     end})
-    reg({Name="resetcommands",Description="wipe ALL and restore builtins",Callback=function(x)
-      x:WipeCommands() x.Builtins={} x:AddBuiltins() x:Write("commands reset",C.green)
+    reg({Name="resetcommands",Description="restore all builtin commands",Callback=function(x)
+      x:WipeCommands() x.Builtins={} x:AddBuiltins() x:Write("builtins restored",C.green)
     end})
     reg({Name="help",Description="list commands",Callback=function(x,a) if a[1] then local cc=x.Cmds[a[1]:lower()] if not cc then x:Write("unknown: "..a[1],C.red) return end x:Write(cc.Name.." - "..(cc.Description or ""),C.yellow) if cc.Usage then x:Write("  "..cc.Usage,C.dim) end return end x:Write("commands:",C.yellow) local n={} for k in pairs(x.Cmds) do table.insert(n,k) end table.sort(n) for _,v in ipairs(n) do x:Write(string.format("  %-14s %s",x.Cmds[v].Name,x.Cmds[v].Description or ""),C.fg) end end})
     reg({Name="cls",Description="clear screen",Callback=function(x) x:Clear() end})
