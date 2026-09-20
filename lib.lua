@@ -1,5 +1,5 @@
--- Cmd Library v1.6
-local T={} T.__index=T T.VERSION="1.6" T.BUILD="2026-09-21"
+-- Cmd Library v1.7
+local T={} T.__index=T T.VERSION="1.7" T.BUILD="2026-09-21"
 T.Colors={bg=Color3.fromRGB(12,12,12),chrome=Color3.fromRGB(30,30,30),chromeHover=Color3.fromRGB(58,58,58),chromeLine=Color3.fromRGB(60,60,60),tabActive=Color3.fromRGB(12,12,12),fg=Color3.fromRGB(220,220,220),dim=Color3.fromRGB(150,150,150),green=Color3.fromRGB(80,220,120),red=Color3.fromRGB(240,110,110),yellow=Color3.fromRGB(230,220,120),cyan=Color3.fromRGB(110,210,230),magenta=Color3.fromRGB(200,130,240),blue=Color3.fromRGB(100,170,255),close=Color3.fromRGB(196,43,28)}
 local C=T.Colors local F=Enum.Font.Code
 local S=game:GetService("Players") local TW=game:GetService("TweenService") local UIS=game:GetService("UserInputService") local H=game:GetService("HttpService") local LP=S.LocalPlayer
@@ -18,82 +18,80 @@ function T.new(c)
   s.Cmds={} s.Flags={} s.Hist={} s.Hi=0
   local parent=(gethui and gethui()) or LP:WaitForChild("PlayerGui")
   local old=LP.PlayerGui and LP.PlayerGui:FindFirstChild("Cmd") if old then old:Destroy() end
-  local g=Instance.new("ScreenGui")
-  g.Name="Cmd" g.ResetOnSpawn=false g.IgnoreGuiInset=true
-  g.ZIndexBehavior=Enum.ZIndexBehavior.Sibling g.DisplayOrder=10 g.Parent=parent
-  s.Gui=g
-  local w=Instance.new("Frame")
-  w.Name="Window" w.AnchorPoint=Vector2.new(.5,.5) w.Position=UDim2.new(.5,0,.5,0)
+  local g=Instance.new("ScreenGui") g.Name="Cmd" g.ResetOnSpawn=false g.IgnoreGuiInset=true
+  g.ZIndexBehavior=Enum.ZIndexBehavior.Sibling g.DisplayOrder=100 g.Parent=parent s.Gui=g
+  local w=Instance.new("Frame") w.AnchorPoint=Vector2.new(.5,.5) w.Position=UDim2.new(.5,0,.5,0)
   w.Size=UDim2.new(0,s.W,0,s.H) w.BackgroundColor3=C.chrome w.BorderSizePixel=0 w.Active=true w.Parent=g
   Instance.new("UICorner",w).CornerRadius=UDim.new(0,8)
-  local tb=Instance.new("Frame")
-  tb.Name="Titlebar" tb.Size=UDim2.new(1,0,0,36) tb.BackgroundColor3=C.chrome tb.BorderSizePixel=0 tb.Active=true tb.Parent=w
+  local tb=Instance.new("Frame") tb.Size=UDim2.new(1,0,0,36) tb.BackgroundColor3=C.chrome tb.BorderSizePixel=0 tb.Active=true tb.Parent=w
   Instance.new("UICorner",tb).CornerRadius=UDim.new(0,8)
   local tbsq=Instance.new("Frame") tbsq.Size=UDim2.new(1,0,.5,0) tbsq.Position=UDim2.new(0,0,.5,0) tbsq.BackgroundColor3=C.chrome tbsq.BorderSizePixel=0 tbsq.Parent=tb
   local ic=Instance.new("TextLabel") ic.Size=UDim2.new(0,28,1,0) ic.Position=UDim2.new(0,12,0,0) ic.BackgroundTransparency=1 ic.Text=">_" ic.TextColor3=C.fg ic.Font=F ic.TextSize=13 ic.TextXAlignment=Enum.TextXAlignment.Left ic.Active=false ic.Parent=tb
   local ti=Instance.new("TextLabel") ti.Size=UDim2.new(1,-220,1,0) ti.Position=UDim2.new(0,44,0,0) ti.BackgroundTransparency=1 ti.Text=s.Title ti.TextColor3=C.fg ti.Font=Enum.Font.GothamMedium ti.TextSize=12 ti.TextXAlignment=Enum.TextXAlignment.Left ti.Active=false ti.Parent=tb
-  local btns={}
-  local lastClick=0
-  local function tryClick(entry)
-    local now=tick() if now-lastClick<0.2 then return end lastClick=now entry.cb()
-  end
-  local function makeBtn(xOff,drawIcon,hoverBg,cb)
-    local b=Instance.new("TextButton")
-    b.Name="Btn" b.Size=UDim2.new(0,56,1,0) b.Position=UDim2.new(1,xOff,0,0)
+  local btns={} local lastClick=0
+  local function fire(entry) local now=tick() if now-lastClick<0.25 then return end lastClick=now pcall(entry.cb) end
+  local function mkBtn(xOff,hoverBg,drawer,cb)
+    local b=Instance.new("TextButton") b.Size=UDim2.new(0,56,1,0) b.Position=UDim2.new(1,xOff,0,0)
     b.BackgroundColor3=C.chrome b.BackgroundTransparency=1 b.BorderSizePixel=0 b.Text=""
-    b.AutoButtonColor=false b.Active=true b.Parent=tb
-    local icn=Instance.new("Frame") icn.AnchorPoint=Vector2.new(.5,.5) icn.Position=UDim2.new(.5,0,.5,0) icn.Size=UDim2.new(0,12,0,12) icn.BackgroundTransparency=1 icn.Active=false icn.Parent=b
-    drawIcon(icn)
-    local entry={btn=b,cb=cb}
-    table.insert(btns,entry)
+    b.AutoButtonColor=false b.Active=true b.Selectable=true b.Parent=tb
+    local host=Instance.new("Frame") host.AnchorPoint=Vector2.new(.5,.5) host.Position=UDim2.new(.5,0,.5,0)
+    host.Size=UDim2.new(0,16,0,16) host.BackgroundTransparency=1 host.Active=false host.Parent=b
+    drawer(host)
+    local e={btn=b,cb=cb}
+    table.insert(btns,e)
     b.MouseEnter:Connect(function() TW:Create(b,TweenInfo.new(.08),{BackgroundTransparency=0,BackgroundColor3=hoverBg}):Play() end)
     b.MouseLeave:Connect(function() TW:Create(b,TweenInfo.new(.08),{BackgroundTransparency=1,BackgroundColor3=C.chrome}):Play() end)
-    b.MouseButton1Down:Connect(function() tryClick(entry) end)
+    b.MouseButton1Down:Connect(function() fire(e) end)
     return b
   end
-  -- minimize: horizontal line
-  makeBtn(-168,function(p)
-    local l=Instance.new("Frame") l.AnchorPoint=Vector2.new(.5,.5) l.Position=UDim2.new(.5,0,.5,0) l.Size=UDim2.new(0,12,0,2) l.BackgroundColor3=C.fg l.BorderSizePixel=0 l.Parent=p
-  end,C.chromeHover,function()
+  -- minimize: solid horizontal bar
+  mkBtn(-168,C.chromeHover,function(p)
+    local l=Instance.new("Frame") l.AnchorPoint=Vector2.new(.5,.5) l.Position=UDim2.new(.5,0,.5,0)
+    l.Size=UDim2.new(0,12,0,2) l.BackgroundColor3=C.fg l.BorderSizePixel=0 l.Parent=p
+  end,function()
     if w.Size.Y.Offset>100 then TW:Create(w,TweenInfo.new(.2),{Size=UDim2.new(0,s.W,0,36)}):Play()
     else TW:Create(w,TweenInfo.new(.2),{Size=UDim2.new(0,s.W,0,s.H)}):Play() end
   end)
-  -- maximize: square outline
-  makeBtn(-112,function(p)
-    local r=Instance.new("Frame") r.AnchorPoint=Vector2.new(.5,.5) r.Position=UDim2.new(.5,0,.5,0) r.Size=UDim2.new(0,10,0,10) r.BackgroundTransparency=1 r.BorderSizePixel=1 r.BorderColor3=C.fg r.Parent=p
-  end,C.chromeHover,function()
+  -- maximize: filled small square (top-left) + outline square
+  mkBtn(-112,C.chromeHover,function(p)
+    local outer=Instance.new("Frame") outer.AnchorPoint=Vector2.new(.5,.5) outer.Position=UDim2.new(.5,0,.5,0)
+    outer.Size=UDim2.new(0,10,0,10) outer.BackgroundColor3=C.fg outer.BorderSizePixel=0 outer.Parent=p
+    local inner=Instance.new("Frame") inner.AnchorPoint=Vector2.new(.5,.5) inner.Position=UDim2.new(.5,0,.5,0)
+    inner.Size=UDim2.new(0,6,0,6) inner.BackgroundColor3=C.chrome inner.BorderSizePixel=0 inner.Parent=outer
+  end,function()
     if w.Size.X.Offset<=s.W+10 then TW:Create(w,TweenInfo.new(.2),{Size=UDim2.new(0,s.W+160,0,s.H+100)}):Play()
     else TW:Create(w,TweenInfo.new(.2),{Size=UDim2.new(0,s.W,0,s.H)}):Play() end
   end)
-  -- close: X (two rotated bars)
-  makeBtn(-56,function(p)
-    local a=Instance.new("Frame") a.AnchorPoint=Vector2.new(.5,.5) a.Position=UDim2.new(.5,0,.5,0) a.Size=UDim2.new(0,12,0,2) a.BackgroundColor3=C.fg a.BorderSizePixel=0 a.Rotation=45 a.Parent=p
-    local b=Instance.new("Frame") b.AnchorPoint=Vector2.new(.5,.5) b.Position=UDim2.new(.5,0,.5,0) b.Size=UDim2.new(0,12,0,2) b.BackgroundColor3=C.fg b.BorderSizePixel=0 b.Rotation=-45 b.Parent=p
-  end,C.close,function()
+  -- close: solid X
+  mkBtn(-56,C.close,function(p)
+    local a=Instance.new("Frame") a.AnchorPoint=Vector2.new(.5,.5) a.Position=UDim2.new(.5,0,.5,0)
+    a.Size=UDim2.new(0,13,0,2) a.BackgroundColor3=C.fg a.BorderSizePixel=0 a.Rotation=45 a.Parent=p
+    local b=Instance.new("Frame") b.AnchorPoint=Vector2.new(.5,.5) b.Position=UDim2.new(.5,0,.5,0)
+    b.Size=UDim2.new(0,13,0,2) b.BackgroundColor3=C.fg b.BorderSizePixel=0 b.Rotation=-45 b.Parent=p
+  end,function()
     TW:Create(w,TweenInfo.new(.2),{Size=UDim2.new(0,s.W,0,0)}):Play() task.wait(.25) s:Destroy()
   end)
-  -- raw UIS click fallback (runs even if GUI events were swallowed)
+  -- raw fallback click detection
   UIS.InputBegan:Connect(function(input)
-    local isMouse=input.UserInputType==Enum.UserInputType.MouseButton1
-    local isTouch=input.UserInputType==Enum.UserInputType.Touch
-    if not (isMouse or isTouch) then return end
-    local pos = isTouch and input.Position or UIS:GetMouseLocation()
-    for _,entry in ipairs(btns) do
-      local b=entry.btn
+    local isM=input.UserInputType==Enum.UserInputType.MouseButton1
+    local isT=input.UserInputType==Enum.UserInputType.Touch
+    if not (isM or isT) then return end
+    local pos=isT and input.Position or UIS:GetMouseLocation()
+    for _,e in ipairs(btns) do
+      local b=e.btn
       if b.Parent and b.Visible then
         local ap=b.AbsolutePosition local as=b.AbsoluteSize
         if pos.X>=ap.X and pos.X<=ap.X+as.X and pos.Y>=ap.Y and pos.Y<=ap.Y+as.Y then
-          tryClick(entry) return
+          fire(e) return
         end
       end
     end
   end)
-  -- titlebar drag (skips button zone)
+  -- drag (excludes button zone)
   local dragging,ds,dp=false,nil,nil
   tb.InputBegan:Connect(function(input)
     if input.UserInputType~=Enum.UserInputType.MouseButton1 and input.UserInputType~=Enum.UserInputType.Touch then return end
-    local p=UIS:GetMouseLocation()
-    local tba=tb.AbsolutePosition local tbs=tb.AbsoluteSize
+    local p=UIS:GetMouseLocation() local tba=tb.AbsolutePosition local tbs=tb.AbsoluteSize
     if p.X>tba.X+tbs.X-190 then return end
     dragging=true ds=input.Position dp=w.Position
     input.Changed:Connect(function() if input.UserInputState==Enum.UserInputState.End then dragging=false end end)
