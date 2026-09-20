@@ -1,5 +1,5 @@
--- Cmd Library v1.8
-local T={} T.__index=T T.VERSION="1.8" T.BUILD="2026-09-21"
+-- Cmd Library v1.9
+local T={} T.__index=T T.VERSION="1.9" T.BUILD="2026-09-21"
 
 local function th(bg,ch,hov,ln,tab,fg,dm,gn,rd,yl,cy,mg,bl,cl)
   return {bg=bg,chrome=ch,chromeHover=hov,chromeLine=ln,tabActive=tab,fg=fg,dim=dm,green=gn,red=rd,yellow=yl,cyan=cy,magenta=mg,blue=bl,close=cl}
@@ -40,7 +40,7 @@ function T.new(c)
   local s=setmetatable({},T) c=c or {}
   s.Title=c.Title or "Command Prompt" s.Prompt=c.Prompt or "C:\\Users\\user>"
   s.W=c.Width or 860 s.H=c.Height or 520
-  s.Cmds={} s.Flags={} s.Hist={} s.Hi=0 s._chrome={}
+  s.Cmds={} s.Builtins={} s.Flags={} s.Hist={} s.Hi=0 s._chrome={}
   if c.Theme and T.Themes[c.Theme] then for k,v in pairs(T.Themes[c.Theme]) do C[k]=v end end
 
   local parent=(gethui and gethui()) or LP:WaitForChild("PlayerGui")
@@ -68,7 +68,7 @@ function T.new(c)
     local host=Instance.new("Frame") host.AnchorPoint=Vector2.new(.5,.5) host.Position=UDim2.new(.5,0,.5,0)
     host.Size=UDim2.new(0,16,0,16) host.BackgroundTransparency=1 host.Active=false host.Parent=b
     drawer(host)
-    local e={btn=b,cb=cb,hover=hoverBg}
+    local e={btn=b,cb=cb,hover=hoverBg,isClose=false}
     table.insert(btns,e)
     b.MouseEnter:Connect(function() TW:Create(b,TweenInfo.new(.08),{BackgroundTransparency=0,BackgroundColor3=e.hover}):Play() end)
     b.MouseLeave:Connect(function() TW:Create(b,TweenInfo.new(.08),{BackgroundTransparency=1,BackgroundColor3=C.chrome}):Play() end)
@@ -91,7 +91,7 @@ function T.new(c)
     if w.Size.X.Offset<=s.W+10 then TW:Create(w,TweenInfo.new(.2),{Size=UDim2.new(0,s.W+160,0,s.H+100)}):Play()
     else TW:Create(w,TweenInfo.new(.2),{Size=UDim2.new(0,s.W,0,s.H)}):Play() end
   end)
-  mkBtn(-56,C.close,function(p)
+  local closeBtn=mkBtn(-56,C.close,function(p)
     local a=Instance.new("Frame") a.AnchorPoint=Vector2.new(.5,.5) a.Position=UDim2.new(.5,0,.5,0)
     a.Size=UDim2.new(0,13,0,2) a.BackgroundColor3=C.fg a.BorderSizePixel=0 a.Rotation=45 a.Parent=p
     local b=Instance.new("Frame") b.AnchorPoint=Vector2.new(.5,.5) b.Position=UDim2.new(.5,0,.5,0)
@@ -99,6 +99,7 @@ function T.new(c)
   end,function()
     TW:Create(w,TweenInfo.new(.2),{Size=UDim2.new(0,s.W,0,0)}):Play() task.wait(.25) s:Destroy()
   end)
+  for _,e in ipairs(btns) do if e.btn==closeBtn then e.isClose=true end end
 
   UIS.InputBegan:Connect(function(input)
     local isM=input.UserInputType==Enum.UserInputType.MouseButton1
@@ -163,7 +164,6 @@ function T.new(c)
   function s:Command(sp) assert(sp and sp.Name) s.Cmds[sp.Name:lower()]=sp end
   function s:Config(sp) assert(sp and sp.Name and sp.Fields) for k,v in pairs(sp.Fields) do if s.Flags[k]==nil then s.Flags[k]=v end end s.Flags["__d_"..sp.Name]=sp.Fields end
 
-  -- THEME
   function s:SetTheme(name)
     local th2=T.Themes[name]
     if not th2 then self:Write("unknown theme: "..tostring(name),C.red) return false end
@@ -174,17 +174,27 @@ function T.new(c)
         else e.o.BackgroundColor3=C[e.k] end
       end
     end
-    for _,e in ipairs(btns) do e.hover=(e.hover==Color3.fromRGB(196,43,28)) and C.close or C.chromeHover end
-    if sc.ScrollBarImageColor3 then sc.ScrollBarImageColor3=C.dim end
+    for _,e in ipairs(btns) do e.hover=e.isClose and C.close or C.chromeHover end
+    sc.ScrollBarImageColor3=C.dim
     self.Theme=name
     return true
   end
 
-  -- CLEAR / RE-ADD BUILTINS
-  function s:ClearCommands() s.Cmds={} end
+  -- CLEAR COMMANDS
+  -- default ("custom"): only removes user-registered commands, keeps builtins
+  -- "all": nukes everything
+  function s:ClearCommands(mode)
+    mode=mode or "custom"
+    if mode=="all" then s.Cmds={} return end
+    for name in pairs(s.Cmds) do
+      if not s.Builtins[name] then s.Cmds[name]=nil end
+    end
+  end
+  function s:WipeCommands() s.Cmds={} end
   function s:AddBuiltins()
-    s:Command({Name="version",Description="show version",Callback=function(x) x:Write("Cmd v"..T.VERSION.." build "..T.BUILD,C.cyan) end})
-    s:Command({Name="colors",Description="list themes or switch theme",Usage="colors [name]",Callback=function(x,a)
+    local function reg(spec) s.Cmds[spec.Name:lower()]=spec s.Builtins[spec.Name:lower()]=true end
+    reg({Name="version",Description="show version",Callback=function(x) x:Write("Cmd v"..T.VERSION.." build "..T.BUILD,C.cyan) end})
+    reg({Name="colors",Description="list themes or switch theme",Usage="colors [name]",Callback=function(x,a)
       local names={} for k in pairs(T.Themes) do table.insert(names,k) end table.sort(names)
       if a[1] then
         if x:SetTheme(a[1]) then x:Write("theme -> "..a[1],C.green) else x:Write("themes: "..table.concat(names,", "),C.dim) end
@@ -194,26 +204,28 @@ function T.new(c)
         x:Write("usage: colors <name>",C.dim)
       end
     end})
-    s:Command({Name="color",Description="alias colors",Usage="color <name>",Callback=function(x,a)
+    reg({Name="color",Description="alias colors",Usage="color <name>",Callback=function(x,a)
       if not a[1] then x:Write("usage: color <name>",C.yellow) return end
       if x:SetTheme(a[1]) then x:Write("theme -> "..a[1],C.green) end
     end})
-    s:Command({Name="clearcommands",Description="wipe ALL commands",Callback=function(x)
-      x:ClearCommands() x:Write("all commands cleared",C.yellow)
+    reg({Name="clearcommands",Description="remove YOUR commands (keeps builtins)",Callback=function(x)
+      local n=0
+      for name in pairs(x.Cmds) do if not x.Builtins[name] then n=n+1 end end
+      x:ClearCommands("custom") x:Write("cleared "..n.." custom commands",C.yellow)
     end})
-    s:Command({Name="resetcommands",Description="wipe + restore builtins",Callback=function(x)
-      x:ClearCommands() x:AddBuiltins() x:Write("commands reset to builtins",C.green)
+    reg({Name="resetcommands",Description="wipe ALL and restore builtins",Callback=function(x)
+      x:WipeCommands() x.Builtins={} x:AddBuiltins() x:Write("commands reset",C.green)
     end})
-    s:Command({Name="help",Description="list commands",Callback=function(x,a) if a[1] then local cc=x.Cmds[a[1]:lower()] if not cc then x:Write("unknown: "..a[1],C.red) return end x:Write(cc.Name.." - "..(cc.Description or ""),C.yellow) if cc.Usage then x:Write("  "..cc.Usage,C.dim) end return end x:Write("commands:",C.yellow) local n={} for k in pairs(x.Cmds) do table.insert(n,k) end table.sort(n) for _,v in ipairs(n) do x:Write(string.format("  %-14s %s",x.Cmds[v].Name,x.Cmds[v].Description or ""),C.fg) end end})
-    s:Command({Name="cls",Description="clear",Callback=function(x) x:Clear() end})
-    s:Command({Name="clear",Description="alias cls",Callback=function(x) x:Clear() end})
-    s:Command({Name="exit",Description="close",Callback=function(x) x:Destroy() end})
-    s:Command({Name="close",Description="alias exit",Callback=function(x) x:Destroy() end})
-    s:Command({Name="whoami",Description="print player",Callback=function(x) x:Write(LP.Name.." ("..LP.UserId..")",C.fg) end})
-    s:Command({Name="flags",Description="list flags",Callback=function(x) x:Write("flags:",C.yellow) for k,v in pairs(x.Flags) do if k:sub(1,4)~="__d_" then x:Write(string.format("  %-14s = %s",k,tostring(v)),C.fg) end end end})
-    s:Command({Name="flag",Description="show flag",Usage="flag <name>",Callback=function(x,a) if not a[1] then x:Write("usage: flag <name>",C.yellow) return end x:Write(a[1].." = "..tostring(x.Flags[a[1]]),C.cyan) end})
-    s:Command({Name="set",Description="set flag",Usage="set <n> <v>",Callback=function(x,a) if not a[1] or not a[2] then x:Write("usage: set <n> <v>",C.yellow) return end x.Flags[a[1]]=pv(a[2]) x:Write(a[1].." = "..tostring(x.Flags[a[1]]),C.green) end})
-    s:Command({Name="config",Description="config mgmt",Usage="config <list|save|load|show|delete> [name]",Callback=function(x,a)
+    reg({Name="help",Description="list commands",Callback=function(x,a) if a[1] then local cc=x.Cmds[a[1]:lower()] if not cc then x:Write("unknown: "..a[1],C.red) return end x:Write(cc.Name.." - "..(cc.Description or ""),C.yellow) if cc.Usage then x:Write("  "..cc.Usage,C.dim) end return end x:Write("commands:",C.yellow) local n={} for k in pairs(x.Cmds) do table.insert(n,k) end table.sort(n) for _,v in ipairs(n) do x:Write(string.format("  %-14s %s",x.Cmds[v].Name,x.Cmds[v].Description or ""),C.fg) end end})
+    reg({Name="cls",Description="clear screen",Callback=function(x) x:Clear() end})
+    reg({Name="clear",Description="alias cls",Callback=function(x) x:Clear() end})
+    reg({Name="exit",Description="close",Callback=function(x) x:Destroy() end})
+    reg({Name="close",Description="alias exit",Callback=function(x) x:Destroy() end})
+    reg({Name="whoami",Description="print player",Callback=function(x) x:Write(LP.Name.." ("..LP.UserId..")",C.fg) end})
+    reg({Name="flags",Description="list flags",Callback=function(x) x:Write("flags:",C.yellow) for k,v in pairs(x.Flags) do if k:sub(1,4)~="__d_" then x:Write(string.format("  %-14s = %s",k,tostring(v)),C.fg) end end end})
+    reg({Name="flag",Description="show flag",Usage="flag <name>",Callback=function(x,a) if not a[1] then x:Write("usage: flag <name>",C.yellow) return end x:Write(a[1].." = "..tostring(x.Flags[a[1]]),C.cyan) end})
+    reg({Name="set",Description="set flag",Usage="set <n> <v>",Callback=function(x,a) if not a[1] or not a[2] then x:Write("usage: set <n> <v>",C.yellow) return end x.Flags[a[1]]=pv(a[2]) x:Write(a[1].." = "..tostring(x.Flags[a[1]]),C.green) end})
+    reg({Name="config",Description="config mgmt",Usage="config <list|save|load|show|delete> [name]",Callback=function(x,a)
       local sub=a[1]
       if sub=="list" then local l=list() if #l==0 then x:Write("none saved",C.dim) return end x:Write("configs:",C.yellow) for _,n in ipairs(l) do x:Write("  "..n,C.fg) end
       elseif sub=="save" then if not a[2] then x:Write("usage: config save <name>",C.yellow) return end local d={} for k,v in pairs(x.Flags) do if k:sub(1,4)~="__d_" then d[k]=v end end save(a[2],H:JSONEncode(d)) x:Write("saved: "..a[2],C.green)
@@ -221,8 +233,8 @@ function T.new(c)
       elseif sub=="show" then if not a[2] then x:Write("usage: config show <name>",C.yellow) return end local r=loadf(a[2]) if not r then x:Write("not found",C.red) return end x:Write(r,C.cyan)
       elseif sub=="delete" then if not a[2] then x:Write("usage: config delete <name>",C.yellow) return end if fs() and type(delfile)=="function" then safe(delfile,CDIR.."/"..a[2]..CEXT) else mem[a[2]]=nil end x:Write("deleted: "..a[2],C.green)
       else x:Write("sub: list|save|load|show|delete",C.dim) end end})
-    s:Command({Name="notify",Description="test toast",Usage="notify <text>",Callback=function(x,a) x:Notify({Title="Test",Content=table.concat(a," ")}) end})
-    s:Command({Name="echo",Description="print text",Usage="echo <text>",Callback=function(x,a) x:Write(table.concat(a," "),C.fg) end})
+    reg({Name="notify",Description="test toast",Usage="notify <text>",Callback=function(x,a) x:Notify({Title="Test",Content=table.concat(a," ")}) end})
+    reg({Name="echo",Description="print text",Usage="echo <text>",Callback=function(x,a) x:Write(table.concat(a," "),C.fg) end})
   end
   s:AddBuiltins()
 
