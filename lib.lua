@@ -1,5 +1,6 @@
--- Cmd Library v1.3 — compact, dark chrome, fixed buttons
-local T={} T.__index=T T.Colors={bg=Color3.fromRGB(12,12,12),chrome=Color3.fromRGB(30,30,30),chromeHover=Color3.fromRGB(45,45,45),chromeLine=Color3.fromRGB(60,60,60),tabActive=Color3.fromRGB(12,12,12),fg=Color3.fromRGB(204,204,204),dim=Color3.fromRGB(140,140,140),green=Color3.fromRGB(80,220,120),red=Color3.fromRGB(240,110,110),yellow=Color3.fromRGB(230,220,120),cyan=Color3.fromRGB(110,210,230),magenta=Color3.fromRGB(200,130,240),blue=Color3.fromRGB(100,170,255),close=Color3.fromRGB(196,43,28)}
+-- Cmd Library v1.4 — RELEASE-2026-09-21
+local T={} T.__index=T T.VERSION="1.4" T.BUILD="2026-09-21"
+T.Colors={bg=Color3.fromRGB(12,12,12),chrome=Color3.fromRGB(30,30,30),chromeHover=Color3.fromRGB(45,45,45),chromeLine=Color3.fromRGB(60,60,60),tabActive=Color3.fromRGB(12,12,12),fg=Color3.fromRGB(204,204,204),dim=Color3.fromRGB(140,140,140),green=Color3.fromRGB(80,220,120),red=Color3.fromRGB(240,110,110),yellow=Color3.fromRGB(230,220,120),cyan=Color3.fromRGB(110,210,230),magenta=Color3.fromRGB(200,130,240),blue=Color3.fromRGB(100,170,255),close=Color3.fromRGB(196,43,28)}
 local C=T.Colors; local F=Enum.Font.Code; local Z=-9999
 local S=game:GetService("Players") local TW=game:GetService("TweenService") local UIS=game:GetService("UserInputService") local H=game:GetService("HttpService") local LP=S.LocalPlayer
 local ROOT,CDIR,CEXT="Cmd","Cmd/Configs",".tcfg" local mem={}
@@ -14,16 +15,12 @@ function T.new(c)
   local s=setmetatable({},T) c=c or {} s.Title=c.Title or "Command Prompt" s.Prompt=c.Prompt or "C:\\Users\\user>" s.W=c.Width or 860 s.H=c.Height or 520 s.Cmds={} s.Flags={} s.Hist={} s.Hi=0
   local old=LP:FindFirstChild("PlayerGui") and LP.PlayerGui:FindFirstChild("Cmd") if old then old:Destroy() end
   local g=Instance.new("ScreenGui") g.Name="Cmd" g.ResetOnSpawn=false g.IgnoreGuiInset=true g.ZIndexBehavior=Enum.ZIndexBehavior.Sibling g.DisplayOrder=Z g.Parent=LP:WaitForChild("PlayerGui") s.Gui=g
-  -- outer window, corner 10
   local w=Instance.new("Frame") w.AnchorPoint=Vector2.new(.5,.5) w.Position=UDim2.new(.5,0,.5,0) w.Size=UDim2.new(0,s.W,0,s.H) w.BackgroundColor3=C.chrome w.BorderSizePixel=0 w.Parent=g Instance.new("UICorner",w).CornerRadius=UDim.new(0,10)
-  -- titlebar, corner 10 top only via mask
   local tb=Instance.new("Frame") tb.Size=UDim2.new(1,0,0,32) tb.BackgroundColor3=C.chrome tb.BorderSizePixel=0 tb.Parent=w Instance.new("UICorner",tb).CornerRadius=UDim.new(0,10)
   local tbmask=Instance.new("Frame") tbmask.Size=UDim2.new(1,0,.5,0) tbmask.Position=UDim2.new(0,0,.5,0) tbmask.BackgroundColor3=C.chrome tbmask.BorderSizePixel=0 tbmask.ZIndex=tb.ZIndex tbmask.Parent=tb
-  local ic=Instance.new("TextLabel") ic.Size=UDim2.new(0,20,0,16) ic.Position=UDim2.new(0,12,.5,-8) ic.BackgroundTransparency=1 ic.Text=">_" ic.TextColor3=C.fg ic.Font=F ic.TextSize=12 ic.TextXAlignment=Enum.TextXAlignment.Left ic.Parent=tb
-  local ti=Instance.new("TextLabel") ti.Size=UDim2.new(1,-200,1,0) ti.Position=UDim2.new(0,38,0,0) ti.BackgroundTransparency=1 ti.Text=s.Title ti.TextColor3=C.fg ti.Font=Enum.Font.Gotham ti.TextSize=12 ti.TextXAlignment=Enum.TextXAlignment.Left ti.Parent=tb
-  -- drag region: only the empty titlebar area, not the buttons
+  local ic=Instance.new("TextLabel") ic.Size=UDim2.new(0,20,0,16) ic.Position=UDim2.new(0,12,.5,-8) ic.BackgroundTransparency=1 ic.Text=">_" ic.TextColor3=C.fg ic.Font=F ic.TextSize=12 ic.TextXAlignment=Enum.TextXAlignment.Left ic.ZIndex=Z+1 ic.Parent=tb
+  local ti=Instance.new("TextLabel") ti.Size=UDim2.new(1,-200,1,0) ti.Position=UDim2.new(0,38,0,0) ti.BackgroundTransparency=1 ti.Text=s.Title ti.TextColor3=C.fg ti.Font=Enum.Font.Gotham ti.TextSize=12 ti.TextXAlignment=Enum.TextXAlignment.Left ti.ZIndex=Z+1 ti.Parent=tb
   local dr=Instance.new("Frame") dr.Size=UDim2.new(1,-150,1,0) dr.BackgroundTransparency=1 dr.Active=true dr.BorderSizePixel=0 dr.Parent=tb
-  -- three window controls. Z+1 puts them above the mask so clicks land
   local function wbtn(xOff,label,hoverBg,hoverFg,cb)
     local b=Instance.new("TextButton") b.Size=UDim2.new(0,46,1,0) b.Position=UDim2.new(1,xOff,0,0) b.BackgroundColor3=C.chrome b.BackgroundTransparency=1 b.BorderSizePixel=0 b.Text=label b.TextColor3=C.fg b.Font=Enum.Font.Gotham b.TextSize=13 b.AutoButtonColor=false b.Active=true b.ZIndex=Z+1 b.Parent=tb
     b.MouseEnter:Connect(function() b.BackgroundTransparency=0 Tween:Create(b,TweenInfo.new(.1),{BackgroundColor3=hoverBg}):Play() b.TextColor3=hoverFg end)
@@ -31,34 +28,19 @@ function T.new(c)
     b.MouseButton1Down:Connect(cb)
     return b
   end
-  -- minimize: collapse to titlebar height
-  wbtn(-138,"-",C.chromeHover,C.fg,function()
-    if w.Size.Y.Offset>100 then Tween:Create(w,TweenInfo.new(.2),{Size=UDim2.new(0,s.W,0,32)}):Play()
-    else Tween:Create(w,TweenInfo.new(.2),{Size=UDim2.new(0,s.W,0,s.H)}):Play() end
-  end)
-  -- maximize: toggle default <-> enlarged
-  wbtn(-92,"□",C.chromeHover,C.fg,function()
-    if w.Size.X.Offset==s.W then Tween:Create(w,TweenInfo.new(.2),{Size=UDim2.new(0,s.W+160,0,s.H+100)}):Play()
-    else Tween:Create(w,TweenInfo.new(.2),{Size=UDim2.new(0,s.W,0,s.H)}):Play() end
-  end)
-  -- close: shrink then destroy
-  wbtn(-46,"x",C.close,Color3.fromRGB(255,255,255),function()
-    Tween:Create(w,TweenInfo.new(.2),{Size=UDim2.new(0,s.W,0,0)}):Play() task.wait(.25) s:Destroy()
-  end)
-  -- drag
+  wbtn(-138,"-",C.chromeHover,C.fg,function() if w.Size.Y.Offset>100 then Tween:Create(w,TweenInfo.new(.2),{Size=UDim2.new(0,s.W,0,32)}):Play() else Tween:Create(w,TweenInfo.new(.2),{Size=UDim2.new(0,s.W,0,s.H)}):Play() end end)
+  wbtn(-92,"□",C.chromeHover,C.fg,function() if w.Size.X.Offset==s.W then Tween:Create(w,TweenInfo.new(.2),{Size=UDim2.new(0,s.W+160,0,s.H+100)}):Play() else Tween:Create(w,TweenInfo.new(.2),{Size=UDim2.new(0,s.W,0,s.H)}):Play() end end)
+  wbtn(-46,"x",C.close,Color3.fromRGB(255,255,255),function() Tween:Create(w,TweenInfo.new(.2),{Size=UDim2.new(0,s.W,0,0)}):Play() task.wait(.25) s:Destroy() end)
   local dg,ds,dp=false,nil,nil
   dr.InputBegan:Connect(function(i) if i.UserInputType==Enum.UserInputType.MouseButton1 then dg=true ds=i.Position dp=w.Position i.Changed:Connect(function() if i.UserInputState==Enum.UserInputState.End then dg=false end end) end end)
   UIS.InputChanged:Connect(function(i) if dg and i.UserInputType==Enum.UserInputType.MouseMovement then local d=i.Position-ds w.Position=UDim2.new(dp.X.Scale,dp.X.Offset+d.X,dp.Y.Scale,dp.Y.Offset+d.Y) end end)
-  -- tab strip, squared
   local tbb=Instance.new("Frame") tbb.Position=UDim2.new(0,0,0,32) tbb.Size=UDim2.new(1,0,0,32) tbb.BackgroundColor3=C.chrome tbb.BorderSizePixel=0 tbb.Parent=w
   local line=Instance.new("Frame") line.AnchorPoint=Vector2.new(0,1) line.Position=UDim2.new(0,0,1,0) line.Size=UDim2.new(1,0,0,1) line.BackgroundColor3=C.chromeLine line.BorderSizePixel=0 line.Parent=tbb
-  -- active tab: corner 8 top only via mask, bg = body color so it "connects"
   local t=Instance.new("Frame") t.Position=UDim2.new(0,8,0,6) t.Size=UDim2.new(0,200,1,-6) t.BackgroundColor3=C.tabActive t.BorderSizePixel=0 t.Parent=tbb Instance.new("UICorner",t).CornerRadius=UDim.new(0,8)
   local tmask=Instance.new("Frame") tmask.Size=UDim2.new(1,0,.5,0) tmask.Position=UDim2.new(0,0,.5,0) tmask.BackgroundColor3=C.tabActive tmask.BorderSizePixel=0 tmask.ZIndex=t.ZIndex tmask.Parent=t
   local tic=Instance.new("TextLabel") tic.Size=UDim2.new(0,24,1,0) tic.Position=UDim2.new(0,6,0,0) tic.BackgroundTransparency=1 tic.Text=">_" tic.TextColor3=C.fg tic.Font=F tic.TextSize=10 tic.TextXAlignment=Enum.TextXAlignment.Left tic.ZIndex=Z+1 tic.Parent=t
   local tl=Instance.new("TextLabel") tl.Size=UDim2.new(1,-56,1,0) tl.Position=UDim2.new(0,32,0,0) tl.BackgroundTransparency=1 tl.Text=s.Title tl.TextColor3=C.fg tl.Font=Enum.Font.Gotham tl.TextSize=12 tl.TextXAlignment=Enum.TextXAlignment.Left tl.ZIndex=Z+1 tl.Parent=t
   local tc=Instance.new("TextButton") tc.Size=UDim2.new(0,22,0,22) tc.Position=UDim2.new(1,-28,.5,-11) tc.BackgroundTransparency=1 tc.Text="x" tc.TextColor3=C.fg tc.Font=Enum.Font.Gotham tc.TextSize=12 tc.AutoButtonColor=false tc.ZIndex=Z+1 tc.Parent=t tc.MouseButton1Down:Connect(function() s:Destroy() end)
-  -- body
   local bd=Instance.new("Frame") bd.Position=UDim2.new(0,0,0,64) bd.Size=UDim2.new(1,0,1,-64) bd.BackgroundColor3=C.bg bd.BorderSizePixel=0 bd.Parent=w Instance.new("UICorner",bd).CornerRadius=UDim.new(0,10)
   local bm=Instance.new("Frame") bm.Size=UDim2.new(1,0,.5,0) bm.BackgroundColor3=C.bg bm.BorderSizePixel=0 bm.ZIndex=bd.ZIndex bm.Parent=bd
   local sc=Instance.new("ScrollingFrame") sc.Position=UDim2.new(0,12,0,10) sc.Size=UDim2.new(1,-24,1,-40) sc.BackgroundTransparency=1 sc.BorderSizePixel=0 sc.ScrollBarThickness=6 sc.ScrollBarImageColor3=Color3.fromRGB(80,80,80) sc.CanvasSize=UDim2.new() sc.AutomaticCanvasSize=Enum.AutomaticSize.Y sc.Parent=bd
@@ -81,6 +63,7 @@ function T.new(c)
   function s:GetFlag(n) return s.Flags[n] end
   function s:Command(sp) assert(sp and sp.Name) s.Cmds[sp.Name:lower()]=sp end
   function s:Config(sp) assert(sp and sp.Name and sp.Fields) for k,v in pairs(sp.Fields) do if s.Flags[k]==nil then s.Flags[k]=v end end s.Flags["__d_"..sp.Name]=sp.Fields end
+  s:Command({Name="version",Description="show library version",Callback=function(x) x:Write("Cmd v"..T.VERSION.."  build "..T.BUILD,C.cyan) end})
   s:Command({Name="help",Description="list commands",Callback=function(x,a) if a[1] then local c=x.Cmds[a[1]:lower()] if not c then x:Write("unknown: "..a[1],C.red) return end x:Write(c.Name.." - "..(c.Description or ""),C.yellow) if c.Usage then x:Write("  "..c.Usage,C.dim) end return end x:Write("commands:",C.yellow) local n={} for k in pairs(x.Cmds) do table.insert(n,k) end table.sort(n) for _,v in ipairs(n) do x:Write(string.format("  %-14s %s",x.Cmds[v].Name,x.Cmds[v].Description or ""),C.fg) end end})
   s:Command({Name="cls",Description="clear",Callback=function(x) x:Clear() end})
   s:Command({Name="clear",Description="alias cls",Callback=function(x) x:Clear() end})
@@ -106,7 +89,15 @@ function T.new(c)
   pb.FocusLost:Connect(function(e) if e then local c=pb.Text pb.Text="" s:_exec(c) end end)
   UIS.InputBegan:Connect(function(i,gp) if gp then return end if not pb:IsFocused() then return end if i.KeyCode==Enum.KeyCode.Up then s.Hi=math.min(s.Hi+1,#s.Hist) if s.Hist[s.Hi] then pb.Text=s.Hist[s.Hi] end elseif i.KeyCode==Enum.KeyCode.Down then s.Hi=math.max(s.Hi-1,0) pb.Text=s.Hi==0 and "" or (s.Hist[s.Hi] or "") end end)
   w.Size=UDim2.new(0,s.W,0,0) TW:Create(w,TweenInfo.new(.35,Enum.EasingStyle.Quad,Enum.EasingDirection.Out),{Size=UDim2.new(0,s.W,0,s.H)}):Play()
-  task.spawn(function() task.wait(.4) s:Write("Microsoft Windows [Version 10.0.26200.9457]",C.fg) s:Write("(c) Microsoft Corporation. All rights reserved.",C.fg) s:Write("",C.fg) task.wait(.1) s:Write("Cmd v1.3 - type 'help'.",C.blue) end)
+  task.spawn(function()
+    task.wait(.4)
+    s:Write("Microsoft Windows [Version 10.0.26200.9457]",C.fg)
+    s:Write("(c) Microsoft Corporation. All rights reserved.",C.fg)
+    s:Write("",C.fg)
+    task.wait(.1)
+    s:Write("=== Cmd v"..T.VERSION.." build "..T.BUILD.." ===",C.magenta)
+    s:Write("type 'version' to confirm, 'help' for commands.",C.blue)
+  end)
   return s
 end
 function T:Destroy() if self.Gui then self.Gui:Destroy() end end
