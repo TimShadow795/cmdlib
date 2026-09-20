@@ -1,4 +1,4 @@
--- Cmd Library v1.5
+-- Cmd Library v1.6
 local T={} T.__index=T T.VERSION="1.5" T.BUILD="2026-09-21"
 T.Colors={bg=Color3.fromRGB(12,12,12),chrome=Color3.fromRGB(30,30,30),chromeHover=Color3.fromRGB(58,58,58),chromeLine=Color3.fromRGB(60,60,60),tabActive=Color3.fromRGB(12,12,12),fg=Color3.fromRGB(220,220,220),dim=Color3.fromRGB(150,150,150),green=Color3.fromRGB(80,220,120),red=Color3.fromRGB(240,110,110),yellow=Color3.fromRGB(230,220,120),cyan=Color3.fromRGB(110,210,230),magenta=Color3.fromRGB(200,130,240),blue=Color3.fromRGB(100,170,255),close=Color3.fromRGB(196,43,28)}
 local C=T.Colors; local F=Enum.Font.Code; local Z=1
@@ -16,22 +16,18 @@ function T.new(c)
   local old=LP:FindFirstChild("PlayerGui") and LP.PlayerGui:FindFirstChild("Cmd") if old then old:Destroy() end
   local g=Instance.new("ScreenGui") g.Name="Cmd" g.ResetOnSpawn=false g.IgnoreGuiInset=true g.ZIndexBehavior=Enum.ZIndexBehavior.Sibling g.DisplayOrder=1 g.Parent=LP:WaitForChild("PlayerGui") s.Gui=g
 
-  -- WINDOW
   local w=Instance.new("Frame") w.AnchorPoint=Vector2.new(.5,.5) w.Position=UDim2.new(.5,0,.5,0) w.Size=UDim2.new(0,s.W,0,s.H) w.BackgroundColor3=C.chrome w.BorderSizePixel=0 w.ZIndex=Z w.Parent=g Instance.new("UICorner",w).CornerRadius=UDim.new(0,8)
 
-  -- TITLEBAR
   local tb=Instance.new("Frame") tb.Size=UDim2.new(1,0,0,32) tb.BackgroundColor3=C.chrome tb.BorderSizePixel=0 tb.ZIndex=Z tb.Parent=w Instance.new("UICorner",tb).CornerRadius=UDim.new(0,8)
   local tbmask=Instance.new("Frame") tbmask.Size=UDim2.new(1,0,.5,0) tbmask.Position=UDim2.new(0,0,.5,0) tbmask.BackgroundColor3=C.chrome tbmask.BorderSizePixel=0 tbmask.ZIndex=Z tbmask.Parent=tb
   local ic=Instance.new("TextLabel") ic.Size=UDim2.new(0,24,1,0) ic.Position=UDim2.new(0,10,0,0) ic.BackgroundTransparency=1 ic.Text=">_" ic.TextColor3=C.fg ic.Font=F ic.TextSize=12 ic.TextXAlignment=Enum.TextXAlignment.Left ic.ZIndex=Z+1 ic.Parent=tb
   local ti=Instance.new("TextLabel") ti.Size=UDim2.new(1,-200,1,0) ti.Position=UDim2.new(0,40,0,0) ti.BackgroundTransparency=1 ti.Text=s.Title ti.TextColor3=C.fg ti.Font=Enum.Font.Gotham ti.TextSize=12 ti.TextXAlignment=Enum.TextXAlignment.Left ti.ZIndex=Z+1 ti.Parent=tb
 
-  -- DRAG (left area, well clear of buttons)
   local dr=Instance.new("TextButton") dr.Size=UDim2.new(1,-170,1,0) dr.BackgroundTransparency=1 dr.Text="" dr.AutoButtonColor=false dr.ZIndex=Z+1 dr.Parent=tb
   local dg,ds,dp=false,nil,nil
   dr.InputBegan:Connect(function(i) if i.UserInputType==Enum.UserInputType.MouseButton1 then dg=true ds=i.Position dp=w.Position i.Changed:Connect(function() if i.UserInputState==Enum.UserInputState.End then dg=false end end) end end)
   UIS.InputChanged:Connect(function(i) if dg and i.UserInputType==Enum.UserInputType.MouseMovement then local d=i.Position-ds w.Position=UDim2.new(dp.X.Scale,dp.X.Offset+d.X,dp.Y.Scale,dp.Y.Offset+d.Y) end end)
 
-  -- WINDOW CONTROLS (positive ZIndex so they beat the mask)
   local function mkBtn(xOff,glyph,hoverBg,hoverFg,onClick)
     local b=Instance.new("TextButton") b.Size=UDim2.new(0,46,1,0) b.Position=UDim2.new(1,xOff,0,0) b.BackgroundColor3=C.chrome b.BackgroundTransparency=1 b.BorderSizePixel=0 b.Text=glyph b.TextColor3=C.fg b.Font=Enum.Font.Arial b.TextSize=14 b.AutoButtonColor=false b.Active=true b.Selectable=true b.ZIndex=Z+10 b.Parent=tb
     b.MouseEnter:Connect(function() Tween:Create(b,TweenInfo.new(.08),{BackgroundTransparency=0,BackgroundColor3=hoverBg}):Play() b.TextColor3=hoverFg end)
@@ -50,14 +46,12 @@ function T.new(c)
     TW:Create(w,TweenInfo.new(.2),{Size=UDim2.new(0,s.W,0,0)}):Play() task.wait(.25) s:Destroy()
   end)
 
-  -- TAB STRIP
   local tbb=Instance.new("Frame") tbb.Position=UDim2.new(0,0,0,32) tbb.Size=UDim2.new(1,0,0,32) tbb.BackgroundColor3=C.chrome tbb.BorderSizePixel=0 tbb.ZIndex=Z tbb.Parent=w
   local line=Instance.new("Frame") line.AnchorPoint=Vector2.new(0,1) line.Position=UDim2.new(0,0,1,0) line.Size=UDim2.new(1,0,0,1) line.BackgroundColor3=C.chromeLine line.BorderSizePixel=0 line.ZIndex=Z+1 line.Parent=tbb
   local t=Instance.new("Frame") t.Position=UDim2.new(0,8,0,4) t.Size=UDim2.new(0,200,1,-4) t.BackgroundColor3=C.tabActive t.BorderSizePixel=0 t.ZIndex=Z+1 t.Parent=tbb Instance.new("UICorner",t).CornerRadius=UDim.new(0,6)
   local tic=Instance.new("TextLabel") tic.Size=UDim2.new(0,24,1,0) tic.Position=UDim2.new(0,6,0,0) tic.BackgroundTransparency=1 tic.Text=">_" tic.TextColor3=C.fg tic.Font=F tic.TextSize=10 tic.TextXAlignment=Enum.TextXAlignment.Left tic.ZIndex=Z+2 tic.Parent=t
   local tl=Instance.new("TextLabel") tl.Size=UDim2.new(1,-40,1,0) tl.Position=UDim2.new(0,32,0,0) tl.BackgroundTransparency=1 tl.Text=s.Title tl.TextColor3=C.fg tl.Font=Enum.Font.Gotham tl.TextSize=12 tl.TextXAlignment=Enum.TextXAlignment.Left tl.ZIndex=Z+2 tl.Parent=t
 
-  -- BODY
   local bd=Instance.new("Frame") bd.Position=UDim2.new(0,0,0,64) bd.Size=UDim2.new(1,0,1,-64) bd.BackgroundColor3=C.bg bd.BorderSizePixel=0 bd.ZIndex=Z bd.Parent=w Instance.new("UICorner",bd).CornerRadius=UDim.new(0,8)
   local bm=Instance.new("Frame") bm.Size=UDim2.new(1,0,.05,0) bm.BackgroundColor3=C.bg bm.BorderSizePixel=0 bm.ZIndex=Z bm.Parent=bd
   local sc=Instance.new("ScrollingFrame") sc.Position=UDim2.new(0,12,0,10) sc.Size=UDim2.new(1,-24,1,-40) sc.BackgroundTransparency=1 sc.BorderSizePixel=0 sc.ScrollBarThickness=6 sc.ScrollBarImageColor3=Color3.fromRGB(90,90,90) sc.CanvasSize=UDim2.new() sc.AutomaticCanvasSize=Enum.AutomaticSize.Y sc.ZIndex=Z+1 sc.Parent=bd
@@ -70,7 +64,6 @@ function T.new(c)
   function s:Write(tx,col) local l=Instance.new("TextLabel") l.BackgroundTransparency=1 l.Size=UDim2.new(1,0,0,15) l.AutomaticSize=Enum.AutomaticSize.Y l.Text=tostring(tx) l.TextColor3=col or C.fg l.Font=F l.TextSize=14 l.TextXAlignment=Enum.TextXAlignment.Left l.TextYAlignment=Enum.TextYAlignment.Top l.TextWrapped=true l.RichText=true l.ZIndex=Z+1 l.Parent=sc task.wait() sc.CanvasPosition=Vector2.new(0,sc.AbsoluteCanvasSize.Y) end
   function s:Clear() for _,c in ipairs(sc:GetChildren()) do if c:IsA("TextLabel") then c:Destroy() end end end
 
-  -- notifications
   local nh=Instance.new("Frame") nh.AnchorPoint=Vector2.new(1,0) nh.Position=UDim2.new(1,-20,0,20) nh.Size=UDim2.new(0,320,0,400) nh.BackgroundTransparency=1 nh.ZIndex=Z+20 nh.Parent=g
   local nl=Instance.new("UIListLayout") nl.Padding=UDim.new(0,8) nl.HorizontalAlignment=Enum.HorizontalAlignment.Right nl.Parent=nh
   function s:Notify(sp) sp=sp or {} local to=Instance.new("Frame") to.Size=UDim2.new(1,0,0,0) to.BackgroundColor3=Color3.fromRGB(34,34,34) to.BorderSizePixel=0 to.ZIndex=Z+20 to.Parent=nh Instance.new("UICorner",to).CornerRadius=UDim.new(0,8)
